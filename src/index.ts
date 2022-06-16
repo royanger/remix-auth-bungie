@@ -21,9 +21,9 @@ export type BungieProfile = {
 } & OAuth2Profile;
 
 export type BungieExtraParams = {
-   expires_in: 3920;
+   expires_in: number;
    token_type: 'Bearer';
-   id_token: string;
+   refresh_expires_in: number;
    membership_id: string;
 } & Record<string, string | number>;
 
@@ -40,8 +40,12 @@ export class BungieStrategy<User> extends OAuth2Strategy<
 
    private readonly includeGrantedScopes: boolean;
 
-   private readonly userInfoURL =
-      'https://www.bungie.net/platform/User/GetBungieAccount/14128891/254/';
+   // private readonly userInfoURL =
+   //    'https://www.bungie.net/platform/User/GetBungieAccount/14128891/254/';
+
+   private createUserInfoURL(id: string) {
+      return `https://www.bungie.net/platform/User/GetBungieAccount/${id}/254/`;
+   }
 
    constructor(
       {
@@ -82,12 +86,18 @@ export class BungieStrategy<User> extends OAuth2Strategy<
       return params;
    }
 
-   protected async userProfile(accessToken: string): Promise<BungieProfile> {
-      const response = await fetch(this.userInfoURL, {
-         headers: {
-            Authorization: `Bearer ${accessToken}`,
-         },
-      });
+   protected async userProfile(
+      accessToken: string,
+      extraParams: BungieExtraParams
+   ): Promise<BungieProfile> {
+      const response = await fetch(
+         this.createUserInfoURL(extraParams.membership_id),
+         {
+            headers: {
+               Authorization: `Bearer ${accessToken}`,
+            },
+         }
+      );
       console.log(response);
       const profile: BungieProfile = {
          provider: 'bungie',
@@ -96,21 +106,4 @@ export class BungieStrategy<User> extends OAuth2Strategy<
       };
       return profile;
    }
-
-   // protected async getAccessToken(response: Response): Promise<{
-   //    accessToken: string;
-   //    refreshToken: string;
-   //    membershipId: string;
-   //    extraParams: TwitchExtraParams;
-   // }> {
-   //    let { access_token, refresh_token, membership_id, ...extraParams } =
-   //       await response.json();
-   //    console.log('MEMBERSHIP', membership_id);
-   //    return {
-   //       accessToken: access_token,
-   //       refreshToken: refresh_token,
-   //       membershipId: membership_id,
-   //       extraParams,
-   //    };
-   // }
 }
