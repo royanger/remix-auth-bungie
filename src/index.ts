@@ -18,7 +18,7 @@ export type BungieStrategyOptions = {
 export type BungieProfile = {
    provider: string;
    id: string;
-   name: string;
+   displayName: string;
    uniqueName: string;
    profilePicture: number;
    profilePicturePath: string;
@@ -105,7 +105,7 @@ export class BungieStrategy<User> extends OAuth2Strategy<
       const profile: BungieProfile = {
          provider: 'bungie',
          id: data.Response.bungieNetUser.membershipId,
-         name: data.Response.bungieNetUser.displayName,
+         displayName: data.Response.bungieNetUser.displayName,
          uniqueName: data.Response.bungieNetUser.uniqueName,
          profilePicture: data.Response.bungieNetUser.profilePicture,
          profilePicturePath: data.Response.bungieNetUser.profilePicturePath,

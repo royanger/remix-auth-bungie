@@ -2,7 +2,7 @@
 
 This is a [Bungie](https://bungie.net/) strategy for [remix-auth](https://github.com/sergiodxa/remix-auth) library.
 
-This is based off of the Google Strategy from [remix-auth-socials](https://github.com/TheRealFlyingCoder/remix-auth-socials)
+This is based off of the Google Strategy from [remix-auth-socials](https://github.com/TheRealFlyingCoder/remix-auth-socials) and the Steam Strategy from [remix-auth-steam](https://github.com/Andreychik32/remix-auth-steam).
 
 ## Supported runtimes
 
@@ -29,9 +29,11 @@ yarn add remix-auth-bungie
 
 ### Local Development - READ THIS
 
-Bungie requires the callback to use `https://` meaning you can't use the default `http://localhost:3000` even for development. The solution that seems to have the least friction and the one I used was the free plan from [ngrok](https://ngrok.com/). You can use any solution you like, but we aware that you can't use just `http://` For the sake of this tutorial I will assume that no matter the solution you use, you have a URL saved to your .env file.
+Bungie requires the callback to use `https://` meaning you can't use the default `http://localhost:3000` even for development. The solution that seems to have the least friction and the one I used was the free plan from [ngrok](https://ngrok.com/). You can use any solution you like, but we aware that you can't use just `http://`.
 
-You will need to update your cookie to use the domain assigned to your ngrok tunnel, if you use that solution. If you have a URL in .env, you can set it to that.
+It also seems you can't use `localhost` but may need to use `127.0.0.1` or some domain setup in your hosts file. I didn't test this can not confirm either way. Using ngrok produces a domain name anyway, so if that is a limitation ngrok also solved that.
+
+For the sake of this README I will assume that no matter the solution you use, you have a URL saved to your .env file. You will need to update your cookie to use the domain assigned to your ngrok tunnel, if you use that solution. If you have a URL in .env, you can set it to that.
 
 ### File structure
 
@@ -43,23 +45,32 @@ To use this package, you will need the following files or similar.
 import { Authenticator } from 'remix-auth';
 import { sessionStorage } from '~/services/session.server';
 import { BungieStrategy } from 'remix-auth-bungie';
+import type { BungieProfile } from 'remix-auth-bungie';
 
-export type User = SteamStrategyVerifyParams;
+// you can import User elsewhere to type the profile
+export type User = BungieProfile;
 
 export let authenticator = new Authenticator<User>(sessionStorage);
 
-if (!process.env.BUNGIE_ID || !process.env.BUNGIE_SECRET) {
-   throw new Error('GitHub ID and Secret required');
+if (
+   !process.env.BUNGIE_ID ||
+   !process.env.BUNGIE_SECRET ||
+   !process.env.BUNGIE_APIKEY
+) {
+   throw new Error('Bungie ID, Secret and API Key are required');
 }
 
 authenticator.use(
    new BungieStrategy(
       {
-         callbackURL: `https://${process.env.URL}/auth/callback/bungie`,
          clientID: process.env.BUNGIE_ID,
          clientSecret: process.env.BUNGIE_SECRET,
+         callbackURL: `https://${process.env.CALLBACK_URL}/auth/callback/bungie`,
+         apiKey: process.env.BUNGIE_APIKEY,
       },
-      async (user) => user // perform additional checks for user here
+      async ({ profile }) => {
+         return profile;
+      }
    )
 );
 ```
@@ -84,7 +95,7 @@ export let sessionStorage = createCookieSessionStorage({
 export let { getSession, commitSession, destroySession } = sessionStorage;
 ```
 
-`app/routes/auth/steam.tsx`:
+`app/routes/auth/bungie.tsx`:
 
 ```tsx
 import type { ActionFunction, LoaderFunction } from '@remix-run/node';
@@ -128,11 +139,10 @@ export default function Index() {
    return (
       <div style={{ fontFamily: 'system-ui, sans-serif', lineHeight: '1.4' }}>
          <h1>Welcome to Remix</h1>
-         <p>
-            <Form action={`/auth/bungie`} method='post'>
-               <button>Login to Bungie</button>
-            </Form>
-         </p>
+
+         <Form action={`/auth/bungie`} method='post'>
+            <button>Login to Bungie</button>
+         </Form>
       </div>
    );
 }
@@ -144,26 +154,23 @@ export default function Index() {
 import type { LoaderFunction } from '@remix-run/node';
 import { Form, useLoaderData } from '@remix-run/react';
 import { authenticator } from '~/services/auth.server';
+import type { User } from '~/services/auth.server';
 
 export let loader: LoaderFunction = async ({ request, params }) => {
    const user = await authenticator.isAuthenticated(request, {
-      failureRedirect: '/',
+      failureRedirect: '/login',
    });
-   console.log('loader', user);
-
-   return { user };
+   return user;
 };
 
 export default function Dashboard() {
-   let { user } = useLoaderData();
-
-   console.log(user);
+   let user: User = useLoaderData();
 
    return (
       <>
          <h1>Dashboard</h1>
          <p>You are logged in.</p>
-         <p>{user ? user.name : null}</p>
+         <p>{user ? user.displayName : null}</p>
          <Form method='post' action='/auth/logout'>
             <button>Logout</button>
          </Form>
@@ -181,8 +188,8 @@ export default function Login() {
    return (
       <>
          <h1>Login</h1>
-         <Form action={`/auth/github`} method='post'>
-            <button>GitHub</button>
+         <Form action={`/auth/bungie`} method='post'>
+            <button>Bungie</button>
          </Form>
       </>
    );

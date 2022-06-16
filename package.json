@@ -1,6 +1,6 @@
 {
    "name": "remix-auth-bungie",
-   "version": "1.0",
+   "version": "1.0.2",
    "main": "./build/index.js",
    "types": "./build/index.d.ts",
    "author": {
@@ -24,8 +24,9 @@
       "auth",
       "authentication",
       "strategy",
-      "steam",
-      "remix-steam"
+      "bungie",
+      "destiny",
+      "remix-bungie"
    ],
    "license": "MIT",
    "files": [
