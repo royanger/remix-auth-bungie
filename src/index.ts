@@ -9,6 +9,7 @@ export type BungieStrategyOptions = {
    clientID: string;
    clientSecret: string;
    callbackURL: string;
+   apiKey: string;
    accessType?: 'online' | 'offline';
    includeGrantedScopes?: boolean;
    prompt?: 'none' | 'consent' | 'select_account';
@@ -18,6 +19,9 @@ export type BungieProfile = {
    provider: string;
    id: string;
    name: string;
+   uniqueName: string;
+   profilePicture: number;
+   profilePicturePath: string;
 } & OAuth2Profile;
 
 export type BungieExtraParams = {
@@ -36,12 +40,9 @@ export class BungieStrategy<User> extends OAuth2Strategy<
 
    private readonly accessType: string;
 
+   private apiKey: string;
+
    private readonly prompt?: 'none' | 'consent' | 'select_account';
-
-   private readonly includeGrantedScopes: boolean;
-
-   // private readonly userInfoURL =
-   //    'https://www.bungie.net/platform/User/GetBungieAccount/14128891/254/';
 
    private createUserInfoURL(id: string) {
       return `https://www.bungie.net/platform/User/GetBungieAccount/${id}/254/`;
@@ -52,8 +53,8 @@ export class BungieStrategy<User> extends OAuth2Strategy<
          clientID,
          clientSecret,
          callbackURL,
+         apiKey,
          accessType,
-         includeGrantedScopes,
          prompt,
       }: BungieStrategyOptions,
       verify: StrategyVerifyCallback<
@@ -71,8 +72,9 @@ export class BungieStrategy<User> extends OAuth2Strategy<
          },
          verify
       );
+
+      this.apiKey = apiKey;
       this.accessType = accessType ?? 'online';
-      this.includeGrantedScopes = includeGrantedScopes ?? false;
       this.prompt = prompt;
    }
 
@@ -95,14 +97,18 @@ export class BungieStrategy<User> extends OAuth2Strategy<
          {
             headers: {
                Authorization: `Bearer ${accessToken}`,
+               'X-API-Key': this.apiKey,
             },
          }
       );
-      console.log(response);
+      const data = await response.json();
       const profile: BungieProfile = {
          provider: 'bungie',
-         id: '14128891',
-         name: 'roy',
+         id: data.Response.bungieNetUser.membershipId,
+         name: data.Response.bungieNetUser.displayName,
+         uniqueName: data.Response.bungieNetUser.uniqueName,
+         profilePicture: data.Response.bungieNetUser.profilePicture,
+         profilePicturePath: data.Response.bungieNetUser.profilePicturePath,
       };
       return profile;
    }

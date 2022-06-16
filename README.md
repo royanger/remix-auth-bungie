@@ -55,7 +55,7 @@ if (!process.env.BUNGIE_ID || !process.env.BUNGIE_SECRET) {
 authenticator.use(
    new BungieStrategy(
       {
-         callbackURL: `https://${process.env.URL}/auth/steam/callback`,
+         callbackURL: `https://${process.env.URL}/auth/callback/bungie`,
          clientID: process.env.BUNGIE_ID,
          clientSecret: process.env.BUNGIE_SECRET,
       },
